@@ -3,59 +3,24 @@ import pygame
 import pymunk
 import pymunk.pygame_util
 import random
-from PIL import Image
-
+from Pipe import PipePair
 heroImg = pygame.image.load('sprites/redbird-upflap.png')
 #heroImg = pygame.transform.scale(heroImg,(500,500))
 pipeImg = pygame.image.load('sprites/pipe-green.png')
 Game = True
 pipepairs = []
-class PipePair:
-    FullLength = 1000
-    width = 150
-    GroundLevel = 1000
-    Gap = 200
-    HeightUp =-1
-    HeightDown = -1
-
-
-    def __init__(self, x, space):
-        self.x = x
-        self.space = space
-        self.MakePipes()
-
-    def MakePipes(self):
-        H = random.randint(300, self.FullLength - 500)
-
-        self.HeightUp = H
-
-        x =self.create_rectangle(self.space, self.x, 0, self.width, H)
-        y =self.create_rectangle(self.space, self.x, H + self.Gap, self.width, self.FullLength - (H + self.Gap))
-
-        self.HeightDown = self.FullLength - (H + self.Gap)
-
-        self.up = x
-        self.down =y
-
-    def create_rectangle(self, space, pos_x, pos_y, width, height):
-        body = pymunk.Body(1,2)
-
-        body.position = (pos_x, pos_y)
-        shape = pymunk.Poly.create_box(body, (width, height))
-
-        space.add(body, shape)
-        return shape
 
 
 
 
 
 def main():
+    score = 0
     pygame.init()
     screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
     pygame.display.set_caption("Flappy bird")
     clock = pygame.time.Clock()
-
+    gamespeed = 15
     space = pymunk.Space()
     space.gravity = (0.0, 900.0)
     draw_options = pymunk.pygame_util.DrawOptions(screen)
@@ -68,8 +33,8 @@ def main():
     handler = space.add_default_collision_handler()
     handler.begin = coli_begin
 
-    GeneratePipes(Hero.body.position.x+1000,space)
-    GeneratePipes(Hero.body.position.x +2000, space)
+    GenerateCustomPipes(Hero.body.position.x+3000,space)
+    GenerateCustomPipes(Hero.body.position.x +4500, space)
 
 
 
@@ -77,7 +42,13 @@ def main():
 
     while Game:
         screen.fill((0, 0, 0))
+
+        score += 1
+
         LastGeneratedPipeX = pipepairs[-1].up.body.position.x
+        if Hero.body.position.y > 850:
+            break
+        
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -86,15 +57,14 @@ def main():
                 sys.exit(0)
 
             pymunk.collision_handler
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE and   Hero.body.position.y > 100:
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE and Hero.body.position.y > 100:
                 Jump(Hero, 10)
-
 
         for i,pipe in enumerate(pipepairs):
 
 
-            pipe.up.body.position += pymunk.Vec2d(-15, 0)
-            pipe.down.body.position += pymunk.Vec2d(-15, 0)
+            pipe.up.body.position += pymunk.Vec2d(-gamespeed, 0)
+            pipe.down.body.position += pymunk.Vec2d(-gamespeed, 0)
 
             Imgx = pygame.transform.scale(pipeImg, (pipe.width + 30, pipe.HeightDown*2))
             screen.blit(Imgx, (pipe.down.body.position.x - 70, pipe.up.body.position.y  + pipe.HeightUp))
@@ -104,7 +74,11 @@ def main():
             Img = pygame.transform.scale(pipeImg, (pipe.width+30,pipe.HeightUp/2))
             Img = pygame.transform.rotozoom(Img, 180, 1)
             screen.blit(Img, (pipe.up.body.position.x-70 , pipe.up.body.position.y ))
+            myfont = pygame.font.SysFont('Comic Sans MS', 30)
+            textsurface = myfont.render("Score:" + str(score), False, (255, 255, 255))
+            screen.blit(textsurface,(500,0))
             Img = pygame.transform.scale(pipeImg, (pipe.width + 30, 20 + pipe.HeightDown / 2))
+
             if pipe.up.body.position.x < -100:
                 space.remove(pipe.up)
                 space.remove(pipe.down)
@@ -119,6 +93,11 @@ def main():
         pygame.display.flip()
         clock.tick(60)
 
+
+def GenerateCustomPipes(x,screen):
+    pipes = PipePair(x, screen)
+    pipes.up.body.velocity_func = pipes.down.body.velocity_func = zero_gravity
+    pipepairs.append(pipes)
 def GeneratePipes(xHero,screen):
     xHero = int(xHero)
     MaxX = xHero + 1000
